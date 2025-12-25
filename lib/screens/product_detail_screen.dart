@@ -6,6 +6,7 @@ import '../providers/cart_provider.dart';
 import '../utils/colors.dart';
 import '../utils/text_styles.dart';
 import '../services/api_service.dart';
+import 'cart_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final Product product;
@@ -40,7 +41,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void _addToCart() {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     cartProvider.addToCart(widget.product, quantity: _quantity);
-    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${widget.product.name} added to cart'),
@@ -54,8 +54,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Widget build(BuildContext context) {
     final apiService = ApiService();
     final imageUrl = apiService.getImageUrl(widget.product.image);
-    
-    // Calculate discount percentage
     int discountPercent = 0;
     try {
       final oldPriceValue = double.tryParse(widget.product.oldPrice) ?? 0;
@@ -89,10 +87,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             icon: const Icon(Icons.search, color: Colors.black87),
             onPressed: () {},
           ),
-          IconButton(
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
-            onPressed: () {},
+          Consumer<CartProvider>(
+            builder: (context, cartProvider, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const CartScreen()),
+                      );
+                    },
+                  ),
+                  if (cartProvider.totalQuantity > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '${cartProvider.totalQuantity}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
@@ -102,7 +138,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Product Image with Favorite Button
                   Stack(
                     children: [
                       Container(
@@ -132,7 +167,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 ),
                               ),
                       ),
-                      // Favorite Button
                       Positioned(
                         top: 16,
                         right: 16,
@@ -151,14 +185,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ],
                   ),
-                  
-                  // Image Indicators
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
-                        4, // Placeholder for 4 images
+                        4, 
                         (index) => Container(
                           margin: const EdgeInsets.symmetric(horizontal: 4),
                           width: index == _currentImageIndex ? 24 : 8,
@@ -173,14 +205,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                   ),
-                  
-                  // Product Info
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Product Name
                         Text(
                           widget.product.name,
                           style: const TextStyle(
@@ -190,8 +219,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        
-                        // Subtitle
                         Text(
                           widget.product.manufacturer.isNotEmpty 
                             ? widget.product.manufacturer 
@@ -202,8 +229,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Price and Share
                         Row(
                           children: [
                             Text(
@@ -242,8 +267,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 24),
-                        
-                        // Description
                         const Text(
                           'Description',
                           style: TextStyle(
@@ -263,8 +286,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
-                        // Related Products
                         const Text(
                           'Related Products',
                           style: TextStyle(
@@ -274,8 +295,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Related Products Grid
                         SizedBox(
                           height: 240,
                           child: ListView.builder(
@@ -296,8 +315,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 ],
               ),
             ),
-          ),
-          
+          ),          
           // Bottom Add to Cart Section
           Container(
             padding: const EdgeInsets.all(16),
@@ -349,7 +367,57 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildRelatedProductCard(String name, double price, double oldPrice) {
-    final discount = (((oldPrice - price) / oldPrice) * 100).round();
+    return _RelatedProductCard(
+      name: name,
+      price: price,
+      oldPrice: oldPrice,
+    );
+  }
+}
+
+// Stateful widget for related products to handle Add/Quantity toggle
+class _RelatedProductCard extends StatefulWidget {
+  final String name;
+  final double price;
+  final double oldPrice;
+
+  const _RelatedProductCard({
+    required this.name,
+    required this.price,
+    required this.oldPrice,
+  });
+
+  @override
+  State<_RelatedProductCard> createState() => _RelatedProductCardState();
+}
+
+class _RelatedProductCardState extends State<_RelatedProductCard> {
+  bool _isAdded = false;
+  int _quantity = 1;
+
+  void _incrementQuantity() {
+    setState(() {
+      _quantity++;
+    });
+  }
+
+  void _decrementQuantity() {
+    if (_quantity > 1) {
+      setState(() {
+        _quantity--;
+      });
+    }
+  }
+
+  void _handleAdd() {
+    setState(() {
+      _isAdded = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final discount = (((widget.oldPrice - widget.price) / widget.oldPrice) * 100).round();
     
     return Container(
       width: 160,
@@ -408,7 +476,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  widget.name,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -419,7 +487,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 Row(
                   children: [
                     Text(
-                      '₹ ${price.toStringAsFixed(2)}',
+                      '₹ ${widget.price.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -428,7 +496,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '₹ ${oldPrice.toStringAsFixed(2)}',
+                      '₹ ${widget.oldPrice.toStringAsFixed(2)}',
                       style: const TextStyle(
                         fontSize: 11,
                         color: Colors.grey,
@@ -438,29 +506,65 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                // Quantity Selector
-                Container(
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF8B4513),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      const Icon(Icons.remove, color: Colors.white, size: 16),
-                      const Text(
-                        '1',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                // Toggle between Add button and Quantity selector
+                _isAdded
+                    ? Container(
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF8B4513),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            InkWell(
+                              onTap: _decrementQuantity,
+                              child: const Icon(Icons.remove, color: Colors.white, size: 16),
+                            ),
+                            Text(
+                              '$_quantity',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: _incrementQuantity,
+                              child: const Icon(Icons.add, color: Colors.white, size: 16),
+                            ),
+                          ],
+                        ),
+                      )
+                    : SizedBox(
+                        height: 32,
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _handleAdd,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF8B4513),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text(
+                                'Add',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.shopping_cart_outlined, size: 14, color: Colors.white),
+                            ],
+                          ),
                         ),
                       ),
-                      const Icon(Icons.add, color: Colors.white, size: 16),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),

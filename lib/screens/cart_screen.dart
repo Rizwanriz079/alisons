@@ -65,7 +65,6 @@ class CartScreen extends StatelessWidget {
                     final product = cartItem.product;
                     final apiService = ApiService();
                     final imageUrl = apiService.getImageUrl(product.image);
-
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(12),
@@ -82,7 +81,6 @@ class CartScreen extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          // Product Image
                           Container(
                             width: 80,
                             height: 80,
@@ -115,8 +113,6 @@ class CartScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          
-                          // Product Details
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,7 +141,6 @@ class CartScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          
                           // Quantity Controls
                           Column(
                             children: [
@@ -156,27 +151,29 @@ class CartScreen extends StatelessWidget {
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Column(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    // Decrease Button
                                     InkWell(
                                       onTap: () {
-                                        cartProvider.increaseQuantity(
+                                        cartProvider.decreaseQuantity(
                                           product.slug,
                                         );
                                       },
                                       child: const Padding(
-                                        padding: EdgeInsets.all(4),
+                                        padding: EdgeInsets.all(8),
                                         child: Icon(
-                                          Icons.add,
+                                          Icons.remove,
                                           size: 16,
                                           color: AppColors.primary,
                                         ),
                                       ),
                                     ),
+                                    // Quantity Display
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
+                                        horizontal: 12,
                                         vertical: 4,
                                       ),
                                       child: Text(
@@ -186,16 +183,17 @@ class CartScreen extends StatelessWidget {
                                         ),
                                       ),
                                     ),
+                                    // Increase Button
                                     InkWell(
                                       onTap: () {
-                                        cartProvider.decreaseQuantity(
+                                        cartProvider.increaseQuantity(
                                           product.slug,
                                         );
                                       },
                                       child: const Padding(
-                                        padding: EdgeInsets.all(4),
+                                        padding: EdgeInsets.all(8),
                                         child: Icon(
-                                          Icons.remove,
+                                          Icons.add,
                                           size: 16,
                                           color: AppColors.primary,
                                         ),
@@ -229,8 +227,6 @@ class CartScreen extends StatelessWidget {
                   },
                 ),
               ),
-              
-              // Cart Summary
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
